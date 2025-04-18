@@ -1,6 +1,11 @@
 # zsh-git
 
-Zsh plugin to ease using Git in the command line.
+Zsh plugin leveraging [fzf](https://github.com/junegunn/fzf) to ease using Git in the
+command line.
+
+Demo showing listing status files and picking the Git HEAD:
+
+[![asciicast](https://asciinema.org/a/716275.svg)](https://asciinema.org/a/716275)
 
 ## Usage
 

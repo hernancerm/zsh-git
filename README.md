@@ -1,7 +1,7 @@
 # zsh-git
 
 Zsh plugin leveraging [fzf](https://github.com/junegunn/fzf) to ease using Git in the
-command line.
+terminal.
 
 Demo showing listing status files and picking the Git HEAD:
 

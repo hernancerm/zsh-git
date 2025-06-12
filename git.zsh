@@ -28,7 +28,9 @@ EOF
   elif [[ "${menu_pick}" = 's' ]]; then
     local git_status_files="$(git -c 'color.status=always' status -su 2> /dev/null)"
     if [[ -n "${git_status_files}" ]]; then
-      local git_status_selected_files=(${(f)"$(echo ${git_status_files} | fzf --multi --ansi)"})
+      local git_status_selected_files=(${(f)"$(echo ${git_status_files} \
+        | fzf --bind='ctrl-p:toggle-preview' --preview='git diff --color=always {2}' \
+          --height='-1' --preview-window='down,75%,hidden' --multi --ansi)"})
       for (( i=1; i<=${#git_status_selected_files}; i++ )); do
         LBUFFER+="${${(s: :)${git_status_selected_files[${i}]}}[2]}"
         if [[ ${i} -lt ${#git_status_selected_files} ]]; then

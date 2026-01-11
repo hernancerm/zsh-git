@@ -7,7 +7,7 @@ command -v zg_version > /dev/null && return
 # CONFIGURATION
 
 function zg_version {
-  echo '0.1.1-dev'
+  echo '0.1.1'
 }
 
 ZG_KEY_MAP_START="${ZG_KEY_MAP_START:-^g}"

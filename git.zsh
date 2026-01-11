@@ -30,7 +30,13 @@ EOF
     if [[ -n "${git_status_files}" ]]; then
       local git_status_selected_files=(${(f)"$(echo ${git_status_files} | fzf --multi --ansi)"})
       for (( i=1; i<=${#git_status_selected_files}; i++ )); do
-        LBUFFER+="${${(s: :)${git_status_selected_files[${i}]}}[2]}"
+        local selected_file="${${(s: :)${git_status_selected_files[${i}]}}[@]:1}"
+        if [[ "${selected_file}" = *[\[\]{}]* ]]; then
+          # No need to match whitespace because Git by default escapes with
+          # double quotes filepaths with a whitespace character.
+          selected_file="\"${selected_file}\""
+        fi
+        LBUFFER+="${selected_file}"
         if [[ ${i} -lt ${#git_status_selected_files} ]]; then
           LBUFFER+=' '
         fi

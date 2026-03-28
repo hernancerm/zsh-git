@@ -1,23 +1,22 @@
 # zsh-git
 
-Zsh plugin leveraging [fzf](https://github.com/junegunn/fzf) to ease using Git in the
-terminal.
+Zsh + [fzf](https://github.com/junegunn/fzf) + git
 
-Demo showing listing status files and picking the Git HEAD:
+Currently only offers:
 
-[![asciicast](https://asciinema.org/a/716275.svg)](https://asciinema.org/a/716275)
+- Add status files to the buffer (quite useful along `git add`).
+- Add the HEAD to the buffer.
 
 ## Usage
 
-While on the shell, press <kbd>ctrl+g</kbd> to start fzf. Pick from one of the options with
-<kbd>enter</kbd>.
+Press <kbd>ctrl+g</kbd> to start fzf. A single key press picks from the menu.
 
 ## Installation
 
 ### Without a plugin manager
 
-1. Install [fzf](https://github.com/junegunn/fzf), e.g., using
-   [Homebrew](https://brew.sh/): `brew install fzf`.
+1. Install [fzf](https://github.com/junegunn/fzf)
+
 2. Clone the zsh-git repository by executing the below command:
 
     ```text
@@ -28,10 +27,8 @@ While on the shell, press <kbd>ctrl+g</kbd> to start fzf. Pick from one of the o
 3. Place the below snippet at the end of your file `~/.zshrc`:
 
     ```text
-    # ZSH-GIT - Start - <https://github.com/hernancerm/zsh-git>.
     source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
     zg_setup_widget
-    # ZSH-GIT - End.
     ```
 
 4. Start a new shell.
@@ -49,8 +46,9 @@ startup (line beginning with `source` from the snippet of step 3, you still need
 ## Integration with other Zsh plugins
 
 - [jeffreytse/zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode) (ZVM).
-Binding <kbd>ctrl+g</kbd> is done inside a specific ZVM function, as below. Do not call
-`zg_setup_widget` when integrating with ZVM.
+
+    <kbd>ctrl+g</kbd> is set up inside the ZVM function below. Do not call
+    `zg_setup_widget` when integrating with ZVM. Use:
 
     ```text
     function zvm_after_init {
@@ -71,13 +69,17 @@ Optional configuration is provided through parameters.
 </thead>
 <tbody>
 <tr>
-<td><code>ZG_KEY_MAP_START</code></td>
+<td><code>ZG_KEYBIND_START</code></td>
 <td>
 <a href="https://github.com/rothgar/mastering-zsh/blob/master/docs/helpers/bindkey.md">
-<code>bindkey</code> key map</a></td><td><code>^g</code></td>
+Key binding</a></td><td><code>^g</code> (<kbd>ctrl+g</kbd>)</td>
 <td>
-Show menu options in fzf. Default: <kbd>ctrl+g</kbd>.
+Start fzf.
 </td>
 </tr>
 </tbody>
 </table>
+
+## Similar projects
+
+- <https://github.com/junegunn/fzf-git.sh>

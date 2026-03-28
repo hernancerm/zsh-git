@@ -12,41 +12,53 @@ function zg_version {
 
 ZG_KEY_MAP_START="${ZG_KEY_MAP_START:-^g}"
 
+# HANDLERS
+
+function _zg_handle_head {
+  local branch_name="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
+  echo "${branch_name/HEAD/}"
+}
+
+function _zg_handle_status {
+  local status_lines="$(git -c 'color.status=always' status -su 2> /dev/null)"
+  if [[ -z "${status_lines}" ]]; then
+    echo ''
+    return
+  fi
+  local filepaths=()
+  local selected_status_lines=(${(f)"$(echo ${status_lines} | fzf --multi --ansi)"})
+  for status_line in ${selected_status_lines}; do
+    filepaths+=("$(_zg_normalize_status_line "${status_line}")")
+  done
+  echo "${(j: :)filepaths}"
+}
+
+# HELPERS
+
+function _zg_normalize_status_line {
+  local filepath="${${(s: :)${1}}[@]:1}"
+  # Case: RM, with R staged but M unstaged. Extract second filepath.
+  if [[ "${filepath}" = *" -> "* ]]; then
+    filepath="${filepath##* -> }"
+  fi
+  # Case: Filepath part has glob-special charactrs. Escape the filepath. Git already escapes with
+  # double quotes a filepath with whitespace, so no need to handle the whitespace case.
+  if [[ "${filepath}" = *[\[\]{}]* ]]; then
+    filepath="\"${filepath}\""
+  fi
+  echo "${filepath}"
+}
+
 # WIDGETS
 
 function zg_widget {
-  local menu=$(
-cat<<'EOF'
-d -- HEAD
-s -- status
-EOF
-)
-  local menu_pick="${${(s: :)$(echo "${menu}" | fzf --query=^ --bind one:accept)}[1]}"
-  if [[ "${menu_pick}" = 'd' ]]; then
-    local git_branch_name="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
-    LBUFFER+="${git_branch_name/HEAD/}"
-  elif [[ "${menu_pick}" = 's' ]]; then
-    local git_status_files="$(git -c 'color.status=always' status -su 2> /dev/null)"
-    if [[ -n "${git_status_files}" ]]; then
-      local git_status_selected_files=(${(f)"$(echo ${git_status_files} | fzf --multi --ansi)"})
-      for (( i=1; i<=${#git_status_selected_files}; i++ )); do
-        local selected_file="${${(s: :)${git_status_selected_files[${i}]}}[@]:1}"
-        if [[ "${selected_file}" = *" -> "* ]]; then
-          # Case of `RM file_a -> file_b` (rename staged, modified unstaged).
-          # Picks the latter file, in the example that is file_b.
-          selected_file="${selected_file##* -> }"
-        fi
-        if [[ "${selected_file}" = *[\[\]{}]* ]]; then
-          # No need to match whitespace because Git by default escapes with
-          # double quotes filepaths with a whitespace character.
-          selected_file="\"${selected_file}\""
-        fi
-        LBUFFER+="${selected_file}"
-        if [[ ${i} -lt ${#git_status_selected_files} ]]; then
-          LBUFFER+=' '
-        fi
-      done
-    fi
+  local menu="s -- status\nh -- HEAD"
+  local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
+  local handler_alias="${${(s: :)fzf_pick}[1]}"
+  if [[ "${handler_alias}" = 'h' ]]; then
+    LBUFFER+="$(_zg_handle_head)"
+  elif [[ "${handler_alias}" = 's' ]]; then
+    LBUFFER+="$(_zg_handle_status)"
   fi
   zle reset-prompt
 }

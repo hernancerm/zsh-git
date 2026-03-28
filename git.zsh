@@ -31,6 +31,11 @@ EOF
       local git_status_selected_files=(${(f)"$(echo ${git_status_files} | fzf --multi --ansi)"})
       for (( i=1; i<=${#git_status_selected_files}; i++ )); do
         local selected_file="${${(s: :)${git_status_selected_files[${i}]}}[@]:1}"
+        if [[ "${selected_file}" = *" -> "* ]]; then
+          # Case of `RM file_a -> file_b` (rename staged, modified unstaged).
+          # Picks the latter file, in the example that is file_b.
+          selected_file="${selected_file##* -> }"
+        fi
         if [[ "${selected_file}" = *[\[\]{}]* ]]; then
           # No need to match whitespace because Git by default escapes with
           # double quotes filepaths with a whitespace character.

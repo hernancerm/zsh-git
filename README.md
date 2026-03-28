@@ -15,7 +15,7 @@ Press <kbd>ctrl+g</kbd> to start fzf. A single key press picks from the menu.
 
 ### Without a plugin manager
 
-1. Install [fzf](https://github.com/junegunn/fzf)
+1. Install [fzf](https://github.com/junegunn/fzf).
 
 2. Clone the zsh-git repository by executing the below command:
 

@@ -1,6 +1,3 @@
-# zsh-git -- Ease using Git in the command line.
-# Homepage: <https://github.com/hernancerm/zsh-git>.
-
 # Do not source this script multiple times.
 command -v zg_version > /dev/null && return
 
@@ -10,9 +7,12 @@ function zg_version {
   echo '0.1.2-SNAPSHOT'
 }
 
-ZG_KEY_MAP_START="${ZG_KEY_MAP_START:-^g}"
+ZG_KEYBIND_START="${ZG_KEYBIND_START:-^g}"
 
 # HANDLERS
+
+# Each option from the main fzf menu should have a single corresponding handler that backs it. The
+# handler is responsible for generating the text, as stdout, that is added to the Zsh buffer.
 
 function _zg_handle_head {
   local branch_name="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
@@ -35,6 +35,8 @@ function _zg_handle_status {
 
 # HELPERS
 
+# Helpers are used by the handlers to keep functions reasonably sized and avoid code duplication.
+
 function _zg_normalize_status_line {
   local filepath="${${(s: :)${1}}[@]:1}"
   # Case: RM, with R staged but M unstaged. Extract second filepath.
@@ -49,7 +51,9 @@ function _zg_normalize_status_line {
   echo "${filepath}"
 }
 
-# WIDGETS
+# WIDGET
+
+# The widget is responsible for the main fzf menu and adding the handler stdout to the Zsh buffer.
 
 function zg_widget {
   local menu="s -- status\nh -- HEAD"
@@ -66,12 +70,12 @@ function zg_widget {
 # Standard widget setup.
 function zg_setup_widget {
   zle -N zg_widget
-  bindkey "${ZG_KEY_MAP_START}" zg_widget
+  bindkey "${ZG_KEYBIND_START}" zg_widget
 }
 
 # Setup widget as per zsh-vi-mode requirements.
 # <https://github.com/jeffreytse/zsh-vi-mode/tree/master#custom-widgets-and-keybindings>.
 function zg_zvm_setup_widget {
   zvm_define_widget zg_widget
-  zvm_bindkey viins "${ZG_KEY_MAP_START}" zg_widget
+  zvm_bindkey viins "${ZG_KEYBIND_START}" zg_widget
 }

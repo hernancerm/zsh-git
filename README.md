@@ -7,6 +7,9 @@ Zsh + [fzf](https://github.com/junegunn/fzf) + git
 - <kbd>ctrl+g s</kbd> Add status files to the Zsh buffer (example use case: `git add <ctrl+g s>`).
 - <kbd>ctrl+g h</kbd> Add the HEAD to the Zhs buffer (example use case: `git commit -m '<ctrl+g h>`).
 
+Optionally, keep ctrl held down, e.g., <kbd>ctrl+g ctrl+s</kbd> instead of
+<kbd>ctrl+g s</kbd>.
+
 ## Installation
 
 ### Without a plugin manager

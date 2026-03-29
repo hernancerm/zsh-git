@@ -55,7 +55,7 @@ function _zg_normalize_status_line {
 
 # The widget is responsible for the main fzf menu and adding the handler stdout to the zsh buffer.
 
-function zg_widget {
+function _zg_widget {
   # Fixes fzf process 2 hiding zsh prompt.
   zle -I
   # Display main menu and handle selection.
@@ -72,13 +72,13 @@ function zg_widget {
 
 # Standard widget setup.
 function zg_setup_widget {
-  zle -N zg_widget
-  bindkey "${ZG_KEYBIND_START}" zg_widget
+  zle -N _zg_widget
+  bindkey "${ZG_KEYBIND_START}" _zg_widget
 }
 
 # Setup widget as per zsh-vi-mode requirements.
 # <https://github.com/jeffreytse/zsh-vi-mode/tree/master#custom-widgets-and-keybindings>.
 function zg_zvm_setup_widget {
-  zvm_define_widget zg_widget
-  zvm_bindkey viins "${ZG_KEYBIND_START}" zg_widget
+  zvm_define_widget _zg_widget
+  zvm_bindkey viins "${ZG_KEYBIND_START}" _zg_widget
 }

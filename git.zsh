@@ -78,9 +78,7 @@ function _zg_widget {
   zle -I
   # Display main menu and handle selection.
   local menu="s -- status\nh -- HEAD"
-  local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept \
-    --bind 'ctrl-s:change-query(^s)' \
-    --bind 'ctrl-h:change-query(^h)')"
+  local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
   local handler_alias="${${(s: :)fzf_pick}[1]}"
   local -A handler_alias_to_handler=(
     [s]='_zg_handle_status'

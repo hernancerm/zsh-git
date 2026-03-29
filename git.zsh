@@ -37,13 +37,31 @@ function _zg_handle_status {
 
 # Helpers are used by the handlers to keep functions reasonably sized and avoid code duplication.
 
+## @param $1 Line.
+## @stdout Line without ANSI escape sequences.
+function _zg_strip_ansi {
+  setopt local_options extendedglob
+  echo "${1//$'\e\['[0-9;]#m}"
+}
+
+## @param $1 Line from `git status --short`. Structure: `XY<space><filepath>`.
+## @stdout Normalized line from `git status --short`.
 function _zg_normalize_status_line {
-  local filepath="${${(s: :)${1}}[@]:1}"
-  # Case: RM, with R staged but M unstaged. Extract second filepath.
-  if [[ "${filepath}" = *" -> "* ]]; then
-    filepath="${filepath##* -> }"
+  local line="$(_zg_strip_ansi "${1}")"
+  local index_status="${line[1]}"
+  local filepath="${line[4,-1]}"
+  # Case: R (rename) or C (copy). Filepath is "old -> new"; extract destination.
+  if [[ "${index_status}" = [RC] ]]; then
+    if [[ "${filepath[-1]}" = '"' ]]; then
+      # Destination is git-quoted; internal `"` are escaped as `\"`.
+      # `##* -> \"` strips to the opening delimiter; re-add the `"`.
+      filepath="\"${filepath##* -> \"}"
+    else
+      # Destination is unquoted; take the last whitespace-free token.
+      filepath="${filepath##* }"
+    fi
   fi
-  # Case: Filepath part has glob-special charactrs. Escape the filepath. Git already escapes with
+  # Case: Filepath part has glob-special characters. Escape the filepath. Git already escapes with
   # double quotes a filepath with whitespace, so no need to handle the whitespace case.
   if [[ "${filepath}" = *[\[\]{}]* ]]; then
     filepath="\"${filepath}\""

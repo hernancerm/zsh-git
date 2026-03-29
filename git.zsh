@@ -62,11 +62,11 @@ function zg_widget {
   local menu="s -- status\nh -- HEAD"
   local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
   local handler_alias="${${(s: :)fzf_pick}[1]}"
-  if [[ "${handler_alias}" = 'h' ]]; then
-    LBUFFER+="$(_zg_handle_head)"
-  elif [[ "${handler_alias}" = 's' ]]; then
-    LBUFFER+="$(_zg_handle_status)"
-  fi
+  local -A handler_alias_to_handler=(
+    [s]='_zg_handle_status'
+    [h]='_zg_handle_head'
+  )
+  LBUFFER+="$(${handler_alias_to_handler[${handler_alias}]})"
   zle reset-prompt
 }
 

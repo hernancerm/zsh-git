@@ -2,14 +2,10 @@
 
 Zsh + [fzf](https://github.com/junegunn/fzf) + git
 
-Currently only offers:
-
-- Add status files to the buffer (quite useful along `git add`).
-- Add the HEAD to the buffer.
-
 ## Usage
 
-Press <kbd>ctrl+g</kbd> to start fzf. A single key press picks from the menu.
+- <kbd>ctrl+g s</kbd> Add status files to the Zsh buffer (example use case: `git add <ctrl+g s>`).
+- <kbd>ctrl+g h</kbd> Add the HEAD to the Zhs buffer (example use case: `git commit -m '<ctrl+g h>`).
 
 ## Installation
 

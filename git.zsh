@@ -12,7 +12,7 @@ ZG_KEYBIND_START="${ZG_KEYBIND_START:-^g}"
 # HANDLERS
 
 # Each option from the main fzf menu should have a single corresponding handler that backs it. The
-# handler is responsible for generating the text, as stdout, that is added to the Zsh buffer.
+# handler is responsible for generating the text, as stdout, that is added to the zsh buffer.
 
 function _zg_handle_head {
   local branch_name="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
@@ -53,9 +53,12 @@ function _zg_normalize_status_line {
 
 # WIDGET
 
-# The widget is responsible for the main fzf menu and adding the handler stdout to the Zsh buffer.
+# The widget is responsible for the main fzf menu and adding the handler stdout to the zsh buffer.
 
 function zg_widget {
+  # Fixes fzf process 2 hiding zsh prompt.
+  zle -I
+  # Display main menu and handle selection.
   local menu="s -- status\nh -- HEAD"
   local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
   local handler_alias="${${(s: :)fzf_pick}[1]}"

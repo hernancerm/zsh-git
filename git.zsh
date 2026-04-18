@@ -85,7 +85,7 @@ function _zg_widget {
     [h]='_zg_handle_head'
   )
   LBUFFER+="$(${handler_alias_to_handler[${handler_alias}]})"
-  zle reset-prompt
+  zle .reset-prompt
 }
 
 # Standard widget setup.

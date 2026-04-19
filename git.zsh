@@ -43,7 +43,6 @@ function _zg_handle_worktrees {
         local line_string=${(j::)line}
         if [[ "${line_string}" = worktree* ]]; then
           line_string="${line_string#worktree }"
-          # line_string="$(echo -n "${line_string}" | sed "s#${HOME}#~#")"
           # Case: Path has glob-special characters. Escape the path.
           if [[ "${line_string}" = *[\[\]{}\ ]* ]]; then
             line_string="\"${line_string}\""

@@ -33,6 +33,43 @@ function _zg_handle_status {
   echo "${(j: :)filepaths}"
 }
 
+function _zg_handle_worktrees {
+  local worktrees=$(git worktree list --porcelain -z)
+  local line=()
+  local lines=()
+  local -i count=0
+  for c in ${(s::)worktrees}; do
+    if [[ ${c} = $'\0' ]]; then
+      if [[ ${#line} -gt 0 ]]; then
+        suffix=''
+        line_string=${(j::)line}
+        if [[ "${line_string}" = branch* ]]; then
+          suffix=$'\0'
+          count+=1
+        fi
+        lines+=(${(j::)line}${suffix})
+      fi
+      line=()
+    else
+      line+=(${c})
+    fi
+  done
+  # Max height should keep single-line prompt visible.
+  local -i max_height=$(( ${LINES} - 1 ))
+  # Height calculated from sum of:
+  # 1. Amount of non-empty git-worktree-list lines.
+  # 2. Amount of "gaps" between the lines of #1.
+  # 3. 2 lines: fzf prompt + matches counter.
+  local -i height=$(( ${#lines} + (${count} - 1) + 2 ))
+  local -i effective_height=${max_height}
+  if [[ ${height} -lt ${max_height} ]]; then
+    effective_height=${height}
+  fi
+  echo ${effective_height} >> o.log
+  local worktree="$(echo -n "${(j:\n:)lines}" | fzf --read0 --ansi --height=${effective_height})"
+  echo ${${${(f)worktree}[1]}#worktree }
+}
+
 # HELPERS
 
 # Helpers are used by the handlers to keep functions reasonably sized and avoid code duplication.
@@ -77,11 +114,12 @@ function _zg_widget {
   # Fixes fzf process 2 hiding zsh prompt.
   zle -I
   # Display main menu and handle selection.
-  local menu="s -- status\nh -- HEAD"
+  local menu="s -- status\nh -- HEAD\nw -- worktrees"
   local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
   local handler_alias="${${(s: :)fzf_pick}[1]}"
   local -A handler_alias_to_handler=(
     [s]='_zg_handle_status'
+    [w]='_zg_handle_worktrees'
     [h]='_zg_handle_head'
   )
   LBUFFER+="$(${handler_alias_to_handler[${handler_alias}]})"

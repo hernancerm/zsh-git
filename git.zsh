@@ -104,7 +104,7 @@ function _zg_widget {
   # Fixes fzf process 2 hiding zsh prompt.
   zle -I
   # Display main menu and handle selection.
-  local menu="s -- status\nh -- HEAD\nw -- worktrees"
+  local menu="s -- status\nw -- worktrees\nh -- HEAD"
   local fzf_pick="$(echo "${menu}" | fzf --query=^ --bind one:accept)"
   local handler_alias="${${(s: :)fzf_pick}[1]}"
   local -A handler_alias_to_handler=(

@@ -34,28 +34,20 @@ function _zg_handle_status {
 }
 
 function _zg_handle_worktrees {
-  local worktrees=$(git worktree list --porcelain -z)
-  local line=()
-  local lines=()
-  for c in ${(s::)worktrees}; do
-    if [[ ${c} = $'\0' ]]; then
-      if [[ ${#line} -gt 0 ]]; then
-        local line_string=${(j::)line}
-        if [[ "${line_string}" = worktree* ]]; then
-          line_string="${line_string#worktree }"
-          # Case: Path has glob-special characters. Escape the path.
-          if [[ "${line_string}" = *[\[\]{}\ ]* ]]; then
-            line_string="\"${line_string}\""
-          fi
-          lines+=("${line_string}")
-        fi
+  local worktrees=()
+  local lines=$(git worktree list --porcelain)
+  for line in ${(f)lines}; do
+    if [[ ${#line} -gt 0 ]] && [[ "${line}" = worktree* ]]; then
+      local worktree="${line}"
+      worktree="${worktree#worktree }"
+      # Case: Path has glob-special characters. Escape the path.
+      if [[ "${worktree}" = *[\[\]{}\ ]* ]]; then
+        worktree="\"${worktree}\""
       fi
-      line=()
-    else
-      line+=(${c})
+      worktrees+=("${worktree}")
     fi
   done
-  local selected_worktrees=($(echo -n "${(j:\n:)lines}" | fzf --multi))
+  local selected_worktrees=($(echo -n "${(j:\n:)worktrees}" | fzf --multi))
   echo "${(j: :)selected_worktrees}"
 }
 

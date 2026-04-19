@@ -37,37 +37,27 @@ function _zg_handle_worktrees {
   local worktrees=$(git worktree list --porcelain -z)
   local line=()
   local lines=()
-  local -i count=0
   for c in ${(s::)worktrees}; do
     if [[ ${c} = $'\0' ]]; then
       if [[ ${#line} -gt 0 ]]; then
-        suffix=''
-        line_string=${(j::)line}
-        if [[ "${line_string}" = branch* ]]; then
-          suffix=$'\0'
-          count+=1
+        local line_string=${(j::)line}
+        if [[ "${line_string}" = worktree* ]]; then
+          line_string="${line_string#worktree }"
+          # line_string="$(echo -n "${line_string}" | sed "s#${HOME}#~#")"
+          # Case: Path has glob-special characters. Escape the path.
+          if [[ "${line_string}" = *[\[\]{}\ ]* ]]; then
+            line_string="\"${line_string}\""
+          fi
+          lines+=("${line_string}")
         fi
-        lines+=(${(j::)line}${suffix})
       fi
       line=()
     else
       line+=(${c})
     fi
   done
-  # Max height should keep single-line prompt visible.
-  local -i max_height=$(( ${LINES} - 1 ))
-  # Height calculated from sum of:
-  # 1. Amount of non-empty git-worktree-list lines.
-  # 2. Amount of "gaps" between the lines of #1.
-  # 3. 2 lines: fzf prompt + matches counter.
-  local -i height=$(( ${#lines} + (${count} - 1) + 2 ))
-  local -i effective_height=${max_height}
-  if [[ ${height} -lt ${max_height} ]]; then
-    effective_height=${height}
-  fi
-  echo ${effective_height} >> o.log
-  local worktree="$(echo -n "${(j:\n:)lines}" | fzf --read0 --ansi --height=${effective_height})"
-  echo ${${${(f)worktree}[1]}#worktree }
+  local selected_worktrees=($(echo -n "${(j:\n:)lines}" | fzf --multi))
+  echo "${(j: :)selected_worktrees}"
 }
 
 # HELPERS

@@ -35,7 +35,7 @@ function _zg_handle_status {
 
 function _zg_handle_worktrees {
   local worktrees=()
-  local lines=$(git worktree list --porcelain)
+  local lines="$(git worktree list --porcelain)"
   for line in ${(f)lines}; do
     if [[ ${#line} -gt 0 ]] && [[ "${line}" = worktree* ]]; then
       local worktree="${line}"

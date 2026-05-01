@@ -51,8 +51,9 @@ default):
     ZG_SET_KEYBINDS=0
     source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
     function zvm_after_init {
-      zvm_define_widget zsh-git-menu
-      zvm_bindkey viins "^g" zsh-git-menu
+      zvm_define_widget zg-menu
+      # ZVM does not handle chords well, prefer zg-menu.
+      zvm_bindkey viins "^g" zg-menu
     }
     ```
 

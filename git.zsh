@@ -16,12 +16,12 @@ ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 # handler is responsible for generating the text, as stdout, that is added to the zsh buffer.
 
 function _zg_handle_head {
-  local head="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
-  head="${head/HEAD/}"
-  if typeset -f zg_transform_head > /dev/null; then
-    local head_transformed="$(zg_transform_head "${head}")"
+  local head="$(git rev-parse --abbrev-ref HEAD 2> /dev/null | sed 's/HEAD//')"
+  if typeset -f zg_map_head > /dev/null; then
+    echo "${head}" | zg_map_head
+  else
+    echo "${head}"
   fi
-  echo "${head_transformed:-${head}}"
 }
 
 function _zg_handle_status {

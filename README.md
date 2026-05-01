@@ -1,11 +1,20 @@
 # zsh-git
 
-Zsh + [fzf](https://github.com/junegunn/fzf) + git
+zsh + [fzf](https://github.com/junegunn/fzf) + git
 
 ## Usage
 
-- <kbd>ctrl+g s</kbd> Add status files to the Zsh buffer (example use case: `git add <ctrl+g s>`).
-- <kbd>ctrl+g h</kbd> Add the HEAD to the Zhs buffer (example use case: `git commit -m '<ctrl+g h>`).
+After sourcing the plugin these keybinds are created (given `ZG_SET_KEYBINDS=1` which is
+default):
+
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer (example use case: `git add <Ctrl-g Ctrl-s>`).
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD to the zsh buffer (example use case: `git commit -m '<Ctrl-g Ctrl-h>`).
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add the worktree path to the zsh buffer.
+
+> [!WARNING]
+> <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> does not work if flow control is enabled, `stty
+> -ixon` disables flow control.
+
 
 ## Installation
 
@@ -15,66 +24,55 @@ Zsh + [fzf](https://github.com/junegunn/fzf) + git
 
 2. Clone the zsh-git repository by executing the below command:
 
-    ```text
+    ```bash
     git clone 'https://github.com/hernancerm/zsh-git.git' \
       "${HOME}/.zsh-git/zsh-git"
     ```
 
-3. Place the below snippet at the end of your file `~/.zshrc`:
+3. Source the plugin (also add command to your `~/.zshrc` to enable on future sessions):
 
-    ```text
+    ```bash
     source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
-    zg_setup_widget
     ```
 
-4. Start a new shell.
+    OR: If you want to set custom keybinds then use:
 
-### With a plugin manager
+    ```bash
+    ZG_SET_KEYBINDS=0
+    source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
+    bindkey "^g^s" zg-status
+    bindkey "^g^w" zg-worktrees
+    bindkey "^g^h" zg-head
+    ```
 
-If you feel comfortable with shell scripting and plan to install other Zsh plugins, like
-[zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode), I recommend you use a shell
-plugin manager like [Sheldon](https://github.com/rossmacarthur/sheldon) for the
-installation. Comparing this approach to the plugin-manager-less approach, the plugin
-manager would be in charge of doing the git clone (step 2) and sourcing the plugin on
-startup (line beginning with `source` from the snippet of step 3, you still need to call
-`zg_setup_widget`).
+    OR: If you use [jeffreytse/zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode):
 
-## Integration with other Zsh plugins
-
-- [jeffreytse/zsh-vi-mode](https://github.com/jeffreytse/zsh-vi-mode) (ZVM).
-
-    <kbd>ctrl+g</kbd> is set up inside the ZVM function below. Do not call
-    `zg_setup_widget` when integrating with ZVM. Use:
-
-    ```text
+    ```bash
+    ZG_SET_KEYBINDS=0
+    source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
     function zvm_after_init {
-      zg_zvm_setup_widget
+      zvm_define_widget zsh-git-menu
+      zvm_bindkey viins "^g" zsh-git-menu
     }
     ```
 
-## Optional configuration
+### With a plugin manager
 
-Optional configuration is provided through parameters.
+With [Sheldon](https://github.com/rossmacarthur/sheldon):
 
-<table>
-<thead>
-<tr>
-<th>Zsh parameters</th><th>Allowed values</th>
-<th>Default value</th><th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>ZG_KEYBIND_START</code></td>
-<td>
-<a href="https://github.com/rothgar/mastering-zsh/blob/master/docs/helpers/bindkey.md">
-Key binding</a></td><td><code>^g</code> (<kbd>ctrl+g</kbd>)</td>
-<td>
-Start fzf.
-</td>
-</tr>
-</tbody>
-</table>
+```toml
+[plugins.fzf-tab]
+github = "hernancerm/fzf-git"
+
+# File: ~/.config/sheldon/plugins.toml
+```
+
+```bash
+# Source plugins.
+eval "$(sheldon source)"
+
+# File: ~/.zshrc
+```
 
 ## Similar projects
 

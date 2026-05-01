@@ -7,7 +7,8 @@ function zg_version {
   echo '0.1.2-SNAPSHOT'
 }
 
-ZG_KEYBIND_START="${ZG_KEYBIND_START:-^g}"
+ZG_PREFIX="${ZG_PREFIX:-^g}"
+ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 
 # HANDLERS
 
@@ -53,8 +54,6 @@ function _zg_handle_worktrees {
 
 # HELPERS
 
-# Helpers are used by the handlers to keep functions reasonably sized and avoid code duplication.
-
 ## @param $1 Line.
 ## @stdout Line without ANSI escape sequences.
 function _zg_strip_ansi {
@@ -87,11 +86,9 @@ function _zg_normalize_status_line {
   echo "${filepath}"
 }
 
-# WIDGET
+# WIDGETS
 
-# The widget is responsible for the main fzf menu and adding the handler stdout to the zsh buffer.
-
-function _zg_widget {
+function zg-menu {
   # Fixes fzf process 2 hiding zsh prompt.
   zle -I
   # Display main menu and handle selection.
@@ -107,15 +104,30 @@ function _zg_widget {
   zle .reset-prompt
 }
 
-# Standard widget setup.
-function zg_setup_widget {
-  zle -N _zg_widget
-  bindkey "${ZG_KEYBIND_START}" _zg_widget
+function zg-status {
+  LBUFFER+="$(_zg_handle_status)"
+  zle .reset-prompt
 }
 
-# Setup widget as per zsh-vi-mode requirements.
-# <https://github.com/jeffreytse/zsh-vi-mode/tree/master#custom-widgets-and-keybindings>.
-function zg_zvm_setup_widget {
-  zvm_define_widget _zg_widget
-  zvm_bindkey viins "${ZG_KEYBIND_START}" _zg_widget
+function zg-worktrees {
+  LBUFFER+="$(_zg_handle_worktrees)"
+  zle .reset-prompt
 }
+
+function zg-head {
+  LBUFFER+="$(_zg_handle_head)"
+  zle .reset-prompt
+}
+
+zle -N zg-menu
+zle -N zg-status
+zle -N zg-worktrees
+zle -N zg-head
+
+# Set keybinds.
+
+if [[ ZG_SET_KEYBINDS -eq 1 ]]; then
+  bindkey "${ZG_PREFIX}^s" zg-status
+  bindkey "${ZG_PREFIX}^w" zg-worktrees
+  bindkey "${ZG_PREFIX}^h" zg-head
+fi

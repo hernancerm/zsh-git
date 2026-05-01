@@ -22,26 +22,23 @@ git worktree remove <Ctrl-g Ctrl-w>
 > <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> does not work if flow control is enabled, `stty
 > -ixon` disables flow control.
 
-Set this function so <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> inserts the Jira key from the
-current branch name (falls-back to the branch name):
+Tip: Set this function so <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> inserts the Jira key from the
+current branch name:
 
 ```bash
 ## @stdin HEAD.
 ## @stdout Jira key.
 function zg_map_head {
-  awk '
+  local line
+  read line
+  [[ ${line} =~ ([A-Z]+-[0-9]+) ]] \
     # Print Jira key if found.
-    match($0, /[A-Z]+-[0-9]+/) {
-      print(substr($0, RSTART, RLENGTH))
-      found=1
-    }
-    # Print stdin as-is otherwise.
-    END {
-      if (!found) {
-        print($0)
-      }
-    }'
+    && echo "${match[1]}" \
+    # Else print stdin as-is.
+    || echo "${line}"
 }
+
+# File: ~/.zshrc
 ```
 
 ## Installation

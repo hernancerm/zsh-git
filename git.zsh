@@ -45,6 +45,8 @@ function _zg_handle_status {
   done
   local header="$(printf '%s\n' "${excluded_status[@]}")"
   local fzf_args=(--multi --ansi --bind 'ctrl-a:toggle-all')
+  local all_status="$(printf '%s\n' "${excluded_status[@]}" "${included_status[@]}")"
+  fzf_args+=(--bind "ctrl-m:reload(echo ${(q)all_status})+hide-header")
   if [[ -n "${header}" ]]; then
     fzf_args+=(--header "${header}")
   fi

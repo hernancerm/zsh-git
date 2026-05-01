@@ -62,8 +62,8 @@ default):
 With [Sheldon](https://github.com/rossmacarthur/sheldon):
 
 ```toml
-[plugins.fzf-tab]
-github = "hernancerm/fzf-git"
+[plugins.zsh-git]
+github = "hernancerm/zsh-git"
 
 # File: ~/.config/sheldon/plugins.toml
 ```

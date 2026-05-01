@@ -7,14 +7,33 @@ zsh + [fzf](https://github.com/junegunn/fzf) + git
 After sourcing the plugin these keybinds are created (given `ZG_SET_KEYBINDS=1` which is
 default):
 
-- <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer (example use case: `git add <Ctrl-g Ctrl-s>`).
-- <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD to the zsh buffer (example use case: `git commit -m '<Ctrl-g Ctrl-h>`).
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer.
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD (optionally transformed) to the zsh buffer.
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add the worktree path to the zsh buffer.
+
+Examples:
+
+Add the issue tracker key (e.g., Jira key) from the branch to the zsh buffer.
+
+```text
+git add <Ctrl-g Ctrl-s>
+git commit -m '<Ctrl-g Ctrl-h>
+git worktree remove <Ctrl-g Ctrl-w>
+```
 
 > [!WARNING]
 > <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> does not work if flow control is enabled, `stty
 > -ixon` disables flow control.
 
+Set this function so <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> inserts the Jira key from the
+current branch name:
+
+```bash
+## @param $1 HEAD.
+function zg_transform_head {
+  echo "${1}" | grep -oE '[A-Z]+-[0-9]+'
+}
+```
 
 ## Installation
 

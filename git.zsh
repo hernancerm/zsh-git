@@ -16,8 +16,12 @@ ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 # handler is responsible for generating the text, as stdout, that is added to the zsh buffer.
 
 function _zg_handle_head {
-  local branch_name="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
-  echo "${branch_name/HEAD/}"
+  local head="$(git rev-parse --abbrev-ref HEAD 2> /dev/null)"
+  head="${head/HEAD/}"
+  if typeset -f zg_transform_head > /dev/null; then
+    local head_transformed="$(zg_transform_head "${head}")"
+  fi
+  echo "${head_transformed:-${head}}"
 }
 
 function _zg_handle_status {

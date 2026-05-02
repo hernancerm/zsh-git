@@ -30,18 +30,20 @@ buffer. Example:
 
 ```bash
 ## @stdin HEAD.
-## @stdout Jira key.
+## @stdout Mapped HEAD.
 function zg_map_head {
   local line
   read line
   [[ ${line} =~ ([A-Z]+-[0-9]+) ]] \
+    # Jira ticket key, e.g., ABC-123.
     && echo "${match[1]}"
 }
-ZG_SET_KEYBINDS=0
 source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
-bindkey "^g^h^h" zg-head-map
-bindkey "^g^h^f" zg-head
-# .. other keybinds
+bindkey "^g^k" zg-head-map
+
+# Use case:
+# Prefix the ticket key to each commit message:
+# $ git commit -m '<Ctrl-g><Ctrl-k>
 
 # File: ~/.zshrc
 ```
@@ -50,10 +52,10 @@ Tip: Set `zg_exclude_status` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> displays spec
 as excluded. Example:
 
 ```bash
-# Set before `<Ctrl-g><Ctr-s>`.
+# Set as needed:
 
 ## @stdin `git status -s` line with ANSI escape codes.
-## @stdout 1 to display line as excluded.
+## @stdout 1 to display line as excluded by `zg-status`.
 function zg_exclude_status {
   local line
   read -r line
@@ -62,6 +64,10 @@ function zg_exclude_status {
   [[ "${line}" == *Makefile* ]] \
     && echo 1
 }
+
+# Use case:
+# Exclude from `git add` files modified for app startup purposes.
+# $ git add <Ctrl-g><Ctrl-s>
 ```
 
 ## Installation

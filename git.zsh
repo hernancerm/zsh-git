@@ -15,10 +15,10 @@ ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 # Each option from the main fzf menu should have a single corresponding handler that backs it. The
 # handler is responsible for generating the text, as stdout, that is added to the zsh buffer.
 
-## @param $1 (optional) 0 skips zg_map_head.
+## @param [$1] 1 to map.
 function _zg_handle_head {
   local head="$(git rev-parse --abbrev-ref HEAD 2> /dev/null | sed 's/HEAD//')"
-  if [[ "${1}" != "0" ]] && typeset -f zg_map_head > /dev/null; then
+  if [[ "${1}" = "1" ]] && typeset -f zg_map_head > /dev/null; then
     echo "${head}" | zg_map_head
   else
     echo "${head}"
@@ -74,7 +74,8 @@ function _zg_handle_worktrees {
       worktrees+=("${worktree}")
     fi
   done
-  local selected_worktrees=($(echo -n "${(j:\n:)worktrees}" | fzf --multi))
+  local fzf_args=(--multi --bind 'ctrl-a:toggle-all')
+  local selected_worktrees=($(echo -n "${(j:\n:)worktrees}" | fzf "${fzf_args[@]}"))
   echo "${(j: :)selected_worktrees}"
 }
 
@@ -139,8 +140,8 @@ function zg-worktrees {
   zle .reset-prompt
 }
 
-function zg-head-no-map {
-  LBUFFER+="$(_zg_handle_head 0)"
+function zg-head-map {
+  LBUFFER+="$(_zg_handle_head 1)"
   zle .reset-prompt
 }
 
@@ -152,7 +153,7 @@ function zg-head {
 zle -N zg-menu
 zle -N zg-status
 zle -N zg-worktrees
-zle -N zg-head-no-map
+zle -N zg-head-map
 zle -N zg-head
 
 # Set keybinds.

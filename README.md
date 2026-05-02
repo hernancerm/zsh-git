@@ -7,23 +7,26 @@ zsh + [fzf](https://github.com/junegunn/fzf) + git
 After sourcing the plugin these keybinds are set:
 
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer.
-- <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD (optionally transformed) to the zsh buffer.
-- <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add the worktree path to the zsh buffer.
+  - <kbd>Ctrl-f</kbd> Includes excluded items (`zg_exclude_status`) in fzf's list.
+  - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add worktree path to the zsh buffer.
+  - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
+- <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD to the zsh buffer.
 
 Usage examples:
 
 ```text
-git add <Ctrl-g Ctrl-s>
-git commit -m '<Ctrl-g Ctrl-h>
-git worktree remove <Ctrl-g Ctrl-w>
+git add <Ctrl-g><Ctrl-s>
+git commit -m '<Ctrl-g><Ctrl-h>
+cd <Ctrl-g><Ctrl-w>
 ```
 
 > [!WARNING]
 > <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> does not work if flow control is enabled, `stty
 > -ixon` disables flow control.
 
-Tip: Set `zg_map_head` so <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> transforms the HEAD before
-putting it in the zsh buffer. Example:
+Tip: Set `zg_map_head` and use `zg-head-map` to map the HEAD before putting it in the zsh
+buffer. Example:
 
 ```bash
 ## @stdin HEAD.
@@ -32,11 +35,13 @@ function zg_map_head {
   local line
   read line
   [[ ${line} =~ ([A-Z]+-[0-9]+) ]] \
-    # Print Jira key if found.
-    && echo "${match[1]}" \
-    # Else print stdin as-is.
-    || echo "${line}"
+    && echo "${match[1]}"
 }
+ZG_SET_KEYBINDS=0
+source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
+bindkey "^g^h^h" zg-head-map
+bindkey "^g^h^f" zg-head
+# .. other keybinds
 
 # File: ~/.zshrc
 ```
@@ -45,14 +50,16 @@ Tip: Set `zg_exclude_status` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> displays spec
 as excluded. Example:
 
 ```bash
-## @stdin `git status -s` line.
-## @stdout 1 to display as excluded.
+# Set before `<Ctrl-g><Ctr-s>`.
+
+## @stdin `git status -s` line with ANSI escape codes.
+## @stdout 1 to display line as excluded.
 function zg_exclude_status {
   local line
   read -r line
-  [[ "${line}" == *README.md* ]] \
+  [[ "${line}" == *Dockerfile* ]] \
     && echo 1
-  [[ "${line}" == *App* ]] \
+  [[ "${line}" == *Makefile* ]] \
     && echo 1
 }
 ```

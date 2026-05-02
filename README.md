@@ -17,7 +17,7 @@ Usage examples:
 
 ```text
 git add <Ctrl-g><Ctrl-s>
-git commit -m '<Ctrl-g><Ctrl-h>
+git push -u origin <Ctrl-g><Ctrl-h>
 cd <Ctrl-g><Ctrl-w>
 ```
 

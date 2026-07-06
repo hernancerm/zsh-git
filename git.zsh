@@ -26,7 +26,8 @@ function _zg_handle_head {
 }
 
 function _zg_handle_status {
-  local status_lines="$(git -c 'color.status=always' status -su 2> /dev/null)"
+  local cmd="git -c 'color.status=always' status -su 2> /dev/null"
+  local status_lines="$(eval "${cmd}")"
   if [[ -z "${status_lines}" ]]; then
     echo ''
     return
@@ -46,8 +47,7 @@ function _zg_handle_status {
   done
   local header="$(printf '%s\n' "${excluded_status[@]}")"
   local fzf_args=(--multi --ansi --bind 'ctrl-a:toggle-all')
-  local all_status="$(printf '%s\n' "${excluded_status[@]}" "${included_status[@]}")"
-  fzf_args+=(--bind "ctrl-f:reload(echo ${(q)all_status})+hide-header")
+  fzf_args+=(--bind "ctrl-f:reload(${cmd})+hide-header")
   if [[ -n "${header}" ]]; then
     fzf_args+=(--header "${header}")
   fi

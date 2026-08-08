@@ -7,7 +7,7 @@ zsh + [fzf](https://github.com/junegunn/fzf) + git
 After sourcing the plugin these keybinds are set:
 
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer.
-  - <kbd>Ctrl-f</kbd> Includes excluded items (`zg_exclude_status`) in fzf's list.
+  - <kbd>Ctrl-f</kbd> Includes excluded items (`ZG_STATUS_EXCLUDE_GLOBS`) in fzf's list.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add worktree path to the zsh buffer.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
@@ -48,22 +48,21 @@ bindkey "^g^k" zg-head-map
 # File: ~/.zshrc
 ```
 
-Tip: Set `zg_exclude_status` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> displays specific files
-as excluded. Example:
+Tip: Set `ZG_STATUS_EXCLUDE_GLOBS` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific
+files out of fzf's list. Each entry is a zsh glob matched against the filepath of a `git
+status` entry. Only the globs which excluded at least one file are listed in fzf's header.
+`**` and `*` behave identically. Press <kbd>Ctrl-f</kbd> to list the full `git status`.
+Example:
 
 ```bash
 # Set as needed:
 
-## @stdin `git status -s` line with ANSI escape codes.
-## @stdout 1 to display line as excluded by `zg-status`.
-function zg_exclude_status {
-  local line
-  read -r line
-  [[ "${line}" == *Dockerfile* ]] \
-    && echo 1
-  [[ "${line}" == *Makefile* ]] \
-    && echo 1
-}
+ZG_STATUS_EXCLUDE_GLOBS=(
+  'Dockerfile'
+  'Makefile'
+  'vendor/*'
+  '*.log'
+)
 
 # Use case:
 # Exclude from `git add` files modified for app startup purposes.

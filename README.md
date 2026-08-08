@@ -64,43 +64,33 @@ source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
 # File: ~/.zshrc
 ```
 
-The exclusions are defined per directory, in a `.zg_status_exclude_globs` file. On each
+The exclusions are defined per directory, in a `.zg_status_exclude` file. On each
 <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> the closest such file is looked up: the lookup starts at
 the cwd and walks up the parent dirs, stopping at `${HOME}` or `/`. The first file found
 wins; files higher up are not merged in. When no file is found nothing is excluded.
 
-Each line of the file is one glob, taken verbatim, matched against the filepath of a `git
-status` entry. Empty lines are dropped. A line whose first character is `#` is a comment
-and is dropped as well. Example contents of a `.zg_status_exclude_globs` file placed at the
-root of a repository:
+The file is in [gitignore](https://git-scm.com/docs/gitignore) syntax, so its comment,
+escaping and pattern rules are the ones from `.gitignore`. Example contents of a
+`.zg_status_exclude` file placed at the root of a repository:
 
-```text
+```gitignore
 # Files modified for app startup purposes.
 Makefile
 Dockerfile
-notes \(1\).md
-vendor/*
+notes (1).md
+vendor/
 *.log
+!important.log
 ```
 
-Only the globs which excluded at least one file are listed in fzf's header. Press
+Only the patterns which excluded at least one file are listed in fzf's header. Press
 <kbd>Ctrl-f</kbd> to list the full `git status`.
 
-The matching is zsh pattern matching, not filename generation, so `*` crosses `/`:
-`vendor/*` excludes `vendor/a/b.go` and `**` behaves the same as `*`. Besides `*`, these
-characters are meaningful in a glob:
+Caveat stemming from Git doing the matching: A filepath which is tracked and gitignored
+(by the repo's `.gitignore`) at the same time is not excluded, even when a pattern of
+`.zg_status_exclude` matches it.
 
-- `?` (any single character)
-- `[abc]` and `[^abc]` (character classes)
-- `<1-9>` (numeric range)
-- `(a|b)` (alternation)
-
-A filepath which contains any of them literally needs each one backslash-escaped, as in
-the `notes \(1\).md` entry above. With `setopt extendedglob`, which zsh-git honors but
-does not set, `#`, `##`, `^` and `~` become meaningful too and likewise need escaping.
-
-A filepath which starts with `#` is written `\#`, as in `\#notes.md`, regardless of
-`extendedglob`, since an unescaped leading `#` marks the line as a comment.
+Add `.zg_status_exclude` to your global `.gitignore`.
 
 ## Installation
 

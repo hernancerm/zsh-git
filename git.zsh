@@ -11,7 +11,8 @@ ZG_PREFIX="${ZG_PREFIX:-^g}"
 ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 ZG_STATUS_EXCLUDE="${ZG_STATUS_EXCLUDE:-0}"
 
-typeset -ga _zg_status_exclude_globs
+typeset -g _zg_status_exclude_file
+typeset -gA _zg_status_excluded_patterns
 
 # HANDLERS
 
@@ -29,7 +30,7 @@ function _zg_handle_head {
 }
 
 function _zg_handle_status {
-  _zg_load_status_exclude_globs
+  _zg_find_status_exclude_file
   local cmd="git -c 'color.status=always' status -su 2> /dev/null"
   local status_lines="$(eval "${cmd}")"
   if [[ -z "${status_lines}" ]]; then
@@ -37,18 +38,29 @@ function _zg_handle_status {
     return
   fi
   local included_status=()
-  local matched_globs=()
+  local matched_patterns=()
   local status_line
-  if [[ ${#_zg_status_exclude_globs} -eq 0 ]]; then
+  if [[ -z "${_zg_status_exclude_file}" ]]; then
     included_status=(${(f)status_lines})
   else
-    for status_line in ${(f)status_lines}; do
-      _zg_get_matched_exclude_glob "${status_line}"
-      if [[ -z "${REPLY}" ]]; then
-        included_status+=("${status_line}")
-      elif [[ ${matched_globs[(Ie)${REPLY}]} -eq 0 ]]; then
-        # Only globs which excluded at least one filepath are shown in the header, once each.
-        matched_globs+=("${REPLY}")
+    local lines=(${(f)status_lines})
+    # The filepaths are collected up front so that `git check-ignore` is run once for all of them
+    # instead of once per line.
+    local line_filepaths=()
+    for status_line in ${lines[@]}; do
+      _zg_strip_ansi "${status_line}"
+      _zg_get_filepath_from_status "${REPLY}"
+      line_filepaths+=("${REPLY}")
+    done
+    _zg_load_excluded_patterns "${line_filepaths[@]}"
+    local i pattern
+    for i in {1..${#lines}}; do
+      pattern="${_zg_status_excluded_patterns[${line_filepaths[i]}]}"
+      if [[ -z "${pattern}" ]]; then
+        included_status+=("${lines[i]}")
+      elif [[ ${matched_patterns[(Ie)${pattern}]} -eq 0 ]]; then
+        # Only patterns which excluded at least one filepath are shown in the header, once each.
+        matched_patterns+=("${pattern}")
       fi
     done
   fi
@@ -58,8 +70,8 @@ function _zg_handle_status {
   # when the user sets an adaptive height (`--height=~`); other height configs are unaffected.
   # There is no going back to the view with the exclusions.
   fzf_args+=(--bind "ctrl-f:become(${show_all_status})")
-  if [[ ${#matched_globs} -gt 0 ]]; then
-    fzf_args+=(--header "${(F)matched_globs}")
+  if [[ ${#matched_patterns} -gt 0 ]]; then
+    fzf_args+=(--header "${(F)matched_patterns}")
   fi
   # Case: Every filepath is excluded. Give fzf empty input instead of a single blank line.
   local fzf_input=''
@@ -123,22 +135,6 @@ function _zg_strip_ansi {
   REPLY="${1//$'\e\['[0-9;]#m}"
 }
 
-## @param $1 Line from `git status --short` with color.
-## @reply First glob in `_zg_status_exclude_globs` matching the line's filepath, else nothing.
-function _zg_get_matched_exclude_glob {
-  _zg_strip_ansi "${1}"
-  _zg_get_filepath_from_status "${REPLY}"
-  local filepath="${REPLY}"
-  local glob
-  for glob in ${_zg_status_exclude_globs[@]}; do
-    if [[ "${filepath}" = ${~glob} ]]; then
-      REPLY="${glob}"
-      return
-    fi
-  done
-  REPLY=''
-}
-
 ## @param $1 Line from `git status --short` without color.
 ## @reply Filepath of the line from `git status --short`.
 function _zg_get_filepath_from_status {
@@ -182,35 +178,60 @@ function _zg_escape_filepath {
 
 # LOOKUP OF THE STATUS EXCLUSIONS
 
-# Sets `_zg_status_exclude_globs` from the closest `.zg_status_exclude_globs` file, so the
-# exclusions are defined per directory tree instead of globally in `~/.zshrc`. Each line of the
-# file is one entry of the array, taken verbatim; empty lines are dropped. A line whose first char
-# is `#` is a comment and is dropped as well; `#` is only meaningful as a glob char after a pattern
-# (`a#`, `a##`), so in leading position it is free to take. A filepath which really starts with `#`
-# is written `\#`, which matches with and without `extendedglob`.
-#
-# The lookup starts at `${PWD}` and walks up the parent directories, stopping at `${HOME}` when
-# `${PWD}` is under it, else at `/`. The first file found wins; files higher up are not merged in.
-# When no file is found the array is left empty, so leaving a directory tree also leaves its
-# exclusions behind.
-function _zg_load_status_exclude_globs {
-  # `no_sh_word_split` so a glob containing whitespace stays a single entry.
-  setopt local_options no_sh_word_split
-  _zg_status_exclude_globs=()
+# The exclusions file is in gitignore syntax and is matched by `git check-ignore`, so its comment,
+# escaping and pattern rules are git's, documented in `gitignore(5)`.
+
+## Sets `_zg_status_exclude_file` to the closest `.zg_status_exclude` file. The lookup starts at
+## `${PWD}` and walks up the parent directories, stopping at `${HOME}` when `${PWD}` is under it,
+## else at `/`. The first file found wins; files higher up are not merged in.
+function _zg_find_status_exclude_file {
+  _zg_status_exclude_file=''
   if [[ ZG_STATUS_EXCLUDE -ne 1 ]]; then
     return
   fi
   local dir="${PWD}"
   while true; do
-    if [[ -r "${dir}/.zg_status_exclude_globs" ]]; then
-      _zg_status_exclude_globs=(${(f)"$(< "${dir}/.zg_status_exclude_globs")"})
-      _zg_status_exclude_globs=(${_zg_status_exclude_globs:#\#*})
+    if [[ -r "${dir}/.zg_status_exclude" ]]; then
+      _zg_status_exclude_file="${dir}/.zg_status_exclude"
       return
     fi
     if [[ "${dir}" = "${HOME}" || "${dir}" = '/' ]]; then
       return
     fi
     dir="${dir:h}"
+  done
+}
+
+## Sets `_zg_status_excluded_patterns`, mapping each excluded filepath to the pattern of
+## `_zg_status_exclude_file` which excluded it. Filepaths which are not excluded are absent.
+## @param $@ Filepaths, as reported by `git status`, so relative to `${PWD}`.
+function _zg_load_excluded_patterns {
+  _zg_status_excluded_patterns=()
+  # The exclusions file is fed to git as `core.excludesFile`, the one exclude source git reads
+  # from an arbitrary path.
+  #
+  # `-z` is NUL delimited on both sides, so a filepath containing whitespace or a newline stays a
+  # single record. `-v` prints `<source>`, `<line>`, `<pattern>` and `<filepath>` per match, and
+  # only matches are printed, in the order the filepaths were given. `--no-index` so tracked
+  # filepaths are checked too; they are the common case here, since `git status` reports untracked
+  # filepaths only when they are not ignored in the first place.
+  #
+  # `-v` reports a match against a negative pattern (`!a.log`) too, which means the filepath is
+  # explicitly not excluded, so those records are dropped below.
+  local records="$(print -rN -- "${@}" \
+    | git -c "core.excludesFile=${_zg_status_exclude_file}" \
+        check-ignore -z -v --no-index --stdin 2> /dev/null)"
+  local fields=(${(0)records})
+  local i
+  for ((i = 1; i <= ${#fields}; i += 4)); do
+    # `core.excludesFile` is the lowest precedence exclude source, so a filepath matched by both
+    # it and a `.gitignore` of the repository is reported against the `.gitignore`. Those matches
+    # are dropped: only the exclusions file may exclude from the list. This affects filepaths
+    # which are tracked and gitignored at the same time; such a filepath is not excluded.
+    if [[ "${fields[i]}" != "${_zg_status_exclude_file}" || "${fields[i + 2]}" = '!'* ]]; then
+      continue
+    fi
+    _zg_status_excluded_patterns[${fields[i + 3]}]="${fields[i + 2]}"
   done
 }
 

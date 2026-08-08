@@ -31,21 +31,25 @@ function _zg_handle_status {
   local cmd="git -c 'color.status=always' status -su 2> /dev/null"
   local status_lines="$(eval "${cmd}")"
   if [[ -z "${status_lines}" ]]; then
-    echo ''
+    print -r -- ''
     return
   fi
   local included_status=()
   local matched_globs=()
   local status_line
-  for status_line in ${(f)status_lines}; do
-    local matched_glob="$(_zg_get_matched_exclude_glob "${status_line}")"
-    if [[ -z "${matched_glob}" ]]; then
-      included_status+=("${status_line}")
-    elif [[ ${matched_globs[(Ie)${matched_glob}]} -eq 0 ]]; then
-      # Only globs which excluded at least one filepath are shown in the header, once each.
-      matched_globs+=("${matched_glob}")
-    fi
-  done
+  if [[ ${#ZG_STATUS_EXCLUDE_GLOBS} -eq 0 ]]; then
+    included_status=(${(f)status_lines})
+  else
+    for status_line in ${(f)status_lines}; do
+      _zg_get_matched_exclude_glob "${status_line}"
+      if [[ -z "${REPLY}" ]]; then
+        included_status+=("${status_line}")
+      elif [[ ${matched_globs[(Ie)${REPLY}]} -eq 0 ]]; then
+        # Only globs which excluded at least one filepath are shown in the header, once each.
+        matched_globs+=("${REPLY}")
+      fi
+    done
+  fi
   local fzf_args=(--multi --ansi --bind 'ctrl-a:toggle-all')
   local show_all_status="${cmd} | fzf --multi --ansi --bind ctrl-a:toggle-all --query={q}"
   # `become` instead of `reload` so fzf recomputes its height for the full status. This matters
@@ -64,9 +68,12 @@ function _zg_handle_status {
     | fzf "${fzf_args[@]}")"})
   local filepaths=()
   for status_line in ${selected_status_lines}; do
-    filepaths+=("$(_zg_escape_filepath "$(_zg_get_filepath_from_status "${status_line}")")")
+    _zg_get_filepath_from_status "${status_line}"
+    _zg_escape_filepath "${REPLY}"
+    filepaths+=("${REPLY}")
   done
-  echo "${(j: :)filepaths}"
+  # `print -r` instead of `echo` so a backslash in a filepath is not processed as an escape.
+  print -r -- "${(j: :)filepaths}"
 }
 
 function _zg_handle_worktrees {
@@ -90,33 +97,35 @@ function _zg_handle_worktrees {
 
 # HELPERS
 
+# These helpers reply in `REPLY` instead of stdout. `zg-status` calls them once per line of
+# `git status`, and a command substitution per line forks a subshell per line, which is slow on
+# a repository with many changed files.
+
 ## @param $1 Line.
-## @stdout Line without ANSI escape sequences.
+## @reply Line without ANSI escape sequences.
 function _zg_strip_ansi {
   setopt local_options extendedglob
-  echo "${1//$'\e\['[0-9;]#m}"
+  REPLY="${1//$'\e\['[0-9;]#m}"
 }
 
 ## @param $1 Line from `git status --short` with color.
-## @stdout First glob in `ZG_STATUS_EXCLUDE_GLOBS` matching the line's filepath, else nothing.
+## @reply First glob in `ZG_STATUS_EXCLUDE_GLOBS` matching the line's filepath, else nothing.
 function _zg_get_matched_exclude_glob {
-  local filepath="$(_zg_get_filepath_from_status "$(_zg_strip_ansi "${1}")")"
-  # Git wraps in double quotes a filepath with whitespace. Match against the bare filepath, so
-  # the globs do not need to account for the quotes.
-  if [[ "${filepath}" = \"*\" ]]; then
-    filepath="${filepath[2,-2]}"
-  fi
+  _zg_strip_ansi "${1}"
+  _zg_get_filepath_from_status "${REPLY}"
+  local filepath="${REPLY}"
   local glob
   for glob in ${ZG_STATUS_EXCLUDE_GLOBS[@]}; do
     if [[ "${filepath}" = ${~glob} ]]; then
-      echo "${glob}"
+      REPLY="${glob}"
       return
     fi
   done
+  REPLY=''
 }
 
 ## @param $1 Line from `git status --short` without color.
-## @stdout Filepath of the line from `git status --short`.
+## @reply Filepath of the line from `git status --short`.
 function _zg_get_filepath_from_status {
   local index_status="${1[1]}"
   local filepath="${1[4,-1]}"
@@ -131,20 +140,22 @@ function _zg_get_filepath_from_status {
       filepath="${filepath##* }"
     fi
   fi
-  echo "${filepath}"
+  # Case: Git wrapped the filepath in double quotes, which it does when the filepath has
+  # whitespace or characters it escapes C-style: `\t`, `\\`, `\"` and octal per byte for the
+  # non-ASCII ones. Decode those escapes to get the filepath as it is on disk. Git quoting is
+  # not zsh quoting, so it cannot be handed to the zsh buffer as-is.
+  if [[ "${filepath}" = \"*\" ]]; then
+    filepath="${filepath[2,-2]}"
+    filepath="${(g:oe:)filepath}"
+  fi
+  REPLY="${filepath}"
 }
 
 ## @param $1 Filepath.
-## @stdout Filepath safe to put in the zsh buffer.
+## @reply Filepath quoted for the zsh buffer.
 function _zg_escape_filepath {
-  local filepath="${1}"
-  # Case: Filepath has glob-special characters. Escape the filepath. Git already escapes with
-  # double quotes a filepath with whitespace, so no need to handle the whitespace case, nor to
-  # add a second pair of double quotes to an already escaped filepath.
-  if [[ "${filepath}" != \"*\" ]] && [[ "${filepath}" = *[\[\]{}]* ]]; then
-    filepath="\"${filepath}\""
-  fi
-  echo "${filepath}"
+  # `(q+)` quotes only when needed and prefers single quotes, which keeps the buffer readable.
+  REPLY="${(q+)1}"
 }
 
 # WIDGETS

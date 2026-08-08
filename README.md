@@ -7,7 +7,7 @@ zsh + [fzf](https://github.com/junegunn/fzf) + git
 After sourcing the plugin these keybinds are set:
 
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer.
-  - <kbd>Ctrl-f</kbd> Includes excluded items (`ZG_STATUS_EXCLUDE_GLOBS`) in fzf's list.
+  - <kbd>Ctrl-f</kbd> Includes excluded items (`ZG_STATUS_EXCLUDE`) in fzf's list.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add worktree path to the zsh buffer.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
@@ -50,26 +50,40 @@ bindkey "^g^k" zg-head-map
 
 ### Excluding files from `zg-status` (<kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd>)
 
-Set `ZG_STATUS_EXCLUDE_GLOBS` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific files
-out of fzf's list. Each entry is a zsh glob matched against the filepath of a `git
-status` entry. Only the globs which excluded at least one file are listed in fzf's header.
-Press <kbd>Ctrl-f</kbd> to list the full `git status`. Example:
+Set `ZG_STATUS_EXCLUDE=1` before sourcing the plugin so
+<kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific files out of fzf's list:
 
 ```bash
-# Set as needed:
-
-ZG_STATUS_EXCLUDE_GLOBS=(
-  'Makefile'
-  'Dockerfile'
-  'notes \(1\).md'
-  'vendor/*'
-  '*.log'
-)
+ZG_STATUS_EXCLUDE=1
+source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
 
 # Use case:
 # Exclude from `git add` files modified for app startup purposes.
 # $ git add <Ctrl-g><Ctrl-s>
+
+# File: ~/.zshrc
 ```
+
+The exclusions are defined per directory, in a `.zg_status_exclude_globs` file. On each
+<kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> the closest such file is looked up: the lookup starts at
+the cwd and walks up the parent dirs, stopping at `${HOME}` or `/`. The first file found
+wins; files higher up are not merged in. When no file is found nothing is excluded.
+
+Each line of the file is one glob, taken verbatim, matched against the filepath of a `git
+status` entry. Empty lines are dropped. There is no comment syntax, since `#` is a glob
+character under `extendedglob`. Example contents of a `.zg_status_exclude_globs` file
+placed at the root of a repository:
+
+```text
+Makefile
+Dockerfile
+notes \(1\).md
+vendor/*
+*.log
+```
+
+Only the globs which excluded at least one file are listed in fzf's header. Press
+<kbd>Ctrl-f</kbd> to list the full `git status`.
 
 The matching is zsh pattern matching, not filename generation, so `*` crosses `/`:
 `vendor/*` excludes `vendor/a/b.go` and `**` behaves the same as `*`. Besides `*`, these
@@ -83,40 +97,6 @@ characters are meaningful in a glob:
 A filepath which contains any of them literally needs each one backslash-escaped, as in
 the `notes \(1\).md` entry above. With `setopt extendedglob`, which zsh-git honors but
 does not set, `#`, `##`, `^` and `~` become meaningful too and likewise need escaping.
-
-#### Per directory autoloading of `ZG_STATUS_EXCLUDE_GLOBS`
-
-Set `ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD=1` before sourcing the plugin to define the
-exclusions per directory:
-
-```bash
-ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD=1
-source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
-
-# File: ~/.zshrc
-```
-
-On each directory change, `ZG_STATUS_EXCLUDE_GLOBS` is reset and then set from the closest
-`.ZG_STATUS_EXCLUDE_GLOBS` file. The lookup starts at the cwd and walks up the parent
-dirs, stopping at `${HOME}` or `/`. The first file found wins; files higher up are not
-merged in. When no file is found the parameter is left empty. With the autoload enabled, a
-value assigned in `~/.zshrc` for `ZG_STATUS_EXCLUDE_GLOBS` is discarded on the first `cd`.
-
-Each line of the `.ZG_STATUS_EXCLUDE_GLOBS` file is one entry of
-`ZG_STATUS_EXCLUDE_GLOBS`, taken verbatim, with the same glob syntax described above.
-Empty lines are dropped. There is no comment syntax, since `#` is a glob character under
-`extendedglob`. Example contents of a `.ZG_STATUS_EXCLUDE_GLOBS` file placed at the root
-of a repository:
-
-```text
-Makefile
-Dockerfile
-notes \(1\).md
-vendor/*
-*.log
-```
-
-I recommend adding `.ZG_STATUS_EXCLUDE_GLOBS` to your global `.gitignore`.
 
 ## Installation
 

@@ -9,9 +9,9 @@ function zg_version {
 
 ZG_PREFIX="${ZG_PREFIX:-^g}"
 ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
-ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD="${ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD:-0}"
+ZG_STATUS_EXCLUDE="${ZG_STATUS_EXCLUDE:-0}"
 
-typeset -ga ZG_STATUS_EXCLUDE_GLOBS
+typeset -ga _zg_status_exclude_globs
 
 # HANDLERS
 
@@ -29,6 +29,7 @@ function _zg_handle_head {
 }
 
 function _zg_handle_status {
+  _zg_load_status_exclude_globs
   local cmd="git -c 'color.status=always' status -su 2> /dev/null"
   local status_lines="$(eval "${cmd}")"
   if [[ -z "${status_lines}" ]]; then
@@ -38,7 +39,7 @@ function _zg_handle_status {
   local included_status=()
   local matched_globs=()
   local status_line
-  if [[ ${#ZG_STATUS_EXCLUDE_GLOBS} -eq 0 ]]; then
+  if [[ ${#_zg_status_exclude_globs} -eq 0 ]]; then
     included_status=(${(f)status_lines})
   else
     for status_line in ${(f)status_lines}; do
@@ -123,13 +124,13 @@ function _zg_strip_ansi {
 }
 
 ## @param $1 Line from `git status --short` with color.
-## @reply First glob in `ZG_STATUS_EXCLUDE_GLOBS` matching the line's filepath, else nothing.
+## @reply First glob in `_zg_status_exclude_globs` matching the line's filepath, else nothing.
 function _zg_get_matched_exclude_glob {
   _zg_strip_ansi "${1}"
   _zg_get_filepath_from_status "${REPLY}"
   local filepath="${REPLY}"
   local glob
-  for glob in ${ZG_STATUS_EXCLUDE_GLOBS[@]}; do
+  for glob in ${_zg_status_exclude_globs[@]}; do
     if [[ "${filepath}" = ${~glob} ]]; then
       REPLY="${glob}"
       return
@@ -179,10 +180,10 @@ function _zg_escape_filepath {
   REPLY="${(q+)1}"
 }
 
-# AUTOLOAD OF ZG_STATUS_EXCLUDE_GLOBS
+# LOOKUP OF THE STATUS EXCLUSIONS
 
-# Sets `ZG_STATUS_EXCLUDE_GLOBS` from the closest `.ZG_STATUS_EXCLUDE_GLOBS` file, so the
-# exclusions can be defined per directory tree instead of globally in `~/.zshrc`. Each line of the
+# Sets `_zg_status_exclude_globs` from the closest `.zg_status_exclude_globs` file, so the
+# exclusions are defined per directory tree instead of globally in `~/.zshrc`. Each line of the
 # file is one entry of the array, taken verbatim; empty lines are dropped. There is no comment
 # syntax, since `#` is a glob character under `extendedglob`.
 #
@@ -193,11 +194,14 @@ function _zg_escape_filepath {
 function _zg_load_status_exclude_globs {
   # `no_sh_word_split` so a glob containing whitespace stays a single entry.
   setopt local_options no_sh_word_split
-  ZG_STATUS_EXCLUDE_GLOBS=()
+  _zg_status_exclude_globs=()
+  if [[ ZG_STATUS_EXCLUDE -ne 1 ]]; then
+    return
+  fi
   local dir="${PWD}"
   while true; do
-    if [[ -r "${dir}/.ZG_STATUS_EXCLUDE_GLOBS" ]]; then
-      ZG_STATUS_EXCLUDE_GLOBS=(${(f)"$(< "${dir}/.ZG_STATUS_EXCLUDE_GLOBS")"})
+    if [[ -r "${dir}/.zg_status_exclude_globs" ]]; then
+      _zg_status_exclude_globs=(${(f)"$(< "${dir}/.zg_status_exclude_globs")"})
       return
     fi
     if [[ "${dir}" = "${HOME}" || "${dir}" = '/' ]]; then
@@ -206,13 +210,6 @@ function _zg_load_status_exclude_globs {
     dir="${dir:h}"
   done
 }
-
-if [[ ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD -eq 1 ]]; then
-  autoload -Uz add-zsh-hook
-  add-zsh-hook chpwd _zg_load_status_exclude_globs
-  # The hook only runs on a dir change, so the dir the shell starts in needs one explicit call.
-  _zg_load_status_exclude_globs
-fi
 
 # WIDGETS
 

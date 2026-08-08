@@ -77,22 +77,35 @@ function _zg_handle_status {
 }
 
 function _zg_handle_worktrees {
+  # `-z` is NUL delimited. `git worktree list --porcelain` prints paths raw, with no quoting at
+  # all, so with the newline delimited output a path containing a newline splits one record over
+  # two lines and the path is silently truncated.
+  local records="$(git worktree list --porcelain -z 2> /dev/null)"
   local worktrees=()
-  local lines="$(git worktree list --porcelain)"
-  for line in ${(f)lines}; do
-    if [[ ${#line} -gt 0 ]] && [[ "${line}" = worktree* ]]; then
-      local worktree="${line}"
-      worktree="${worktree#worktree }"
-      # Case: Path has glob-special characters. Escape the path.
-      if [[ "${worktree}" = *[\[\]{}\ ]* ]]; then
-        worktree="\"${worktree}\""
-      fi
-      worktrees+=("${worktree}")
+  local record
+  for record in ${(0)records}; do
+    if [[ "${record}" = worktree\ * ]]; then
+      worktrees+=("${record#worktree }")
     fi
   done
-  local fzf_args=(--multi --bind 'ctrl-a:toggle-all')
-  local selected_worktrees=($(echo -n "${(j:\n:)worktrees}" | fzf "${fzf_args[@]}"))
-  echo "${(j: :)selected_worktrees}"
+  if [[ ${#worktrees} -eq 0 ]]; then
+    print -r -- ''
+    return
+  fi
+  # NUL delimited on both sides too, so a path containing a newline stays a single fzf entry and
+  # a single element of the selection.
+  local fzf_args=(--multi --read0 --print0 --bind 'ctrl-a:toggle-all')
+  # fzf shows the bare path; quoting is applied only to what is joined into the buffer, otherwise
+  # the quotes would show up in the fzf list.
+  local selected_worktrees=(${(0)"$(print -rN -- "${worktrees[@]}" | fzf "${fzf_args[@]}")"})
+  local escaped_worktrees=()
+  local worktree
+  for worktree in ${selected_worktrees}; do
+    _zg_escape_filepath "${worktree}"
+    escaped_worktrees+=("${REPLY}")
+  done
+  # `print -r` instead of `echo` so a backslash in a path is not processed as an escape.
+  print -r -- "${(j: :)escaped_worktrees}"
 }
 
 # HELPERS
@@ -154,6 +167,13 @@ function _zg_get_filepath_from_status {
 ## @param $1 Filepath.
 ## @reply Filepath quoted for the zsh buffer.
 function _zg_escape_filepath {
+  # Case: `!`. `(q+)` leaves it bare, and an unquoted `!` is history expansion in an interactive
+  # shell: `zsh: event not found`. `(qq)` always single quotes, and history expansion is not
+  # performed inside single quotes.
+  if [[ "${1}" = *'!'* ]]; then
+    REPLY="${(qq)1}"
+    return
+  fi
   # `(q+)` quotes only when needed and prefers single quotes, which keeps the buffer readable.
   REPLY="${(q+)1}"
 }

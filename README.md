@@ -86,9 +86,10 @@ vendor/
 Only the patterns which excluded at least one file are listed in fzf's header. Press
 <kbd>Ctrl-f</kbd> to list the full `git status`.
 
-Caveat stemming from Git doing the matching: A filepath which is tracked and gitignored
-(by the repo's `.gitignore`) at the same time is not excluded, even when a pattern of
-`.zg_status_exclude` matches it.
+The matching runs in an empty repository cached at `${XDG_CACHE_HOME:-~/.cache}/zsh-git`,
+created on first use, so that `.zg_status_exclude` is the only exclude source Git
+considers. Otherwise the repo's `.gitignore` would take precedence over it, leaving a
+filepath which is tracked and gitignored at the same time impossible to exclude.
 
 Add `.zg_status_exclude` to your global `.gitignore`.
 

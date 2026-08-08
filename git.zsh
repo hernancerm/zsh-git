@@ -12,6 +12,7 @@ ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
 ZG_STATUS_EXCLUDE="${ZG_STATUS_EXCLUDE:-0}"
 
 typeset -g _zg_status_exclude_file
+typeset -g _zg_status_match_repo
 typeset -gA _zg_status_excluded_patterns
 
 # HANDLERS
@@ -44,12 +45,28 @@ function _zg_handle_status {
     included_status=(${(f)status_lines})
   else
     local lines=(${(f)status_lines})
+    _zg_find_match_repo
+    # `git status` prints filepaths relative to `${PWD}`, which is what the zsh buffer needs, but
+    # the match repository needs them relative to the root of the repository. `--show-prefix` is
+    # the path from that root down to `${PWD}`, empty when `${PWD}` is the root itself.
+    local prefix=''
+    if [[ -n "${_zg_status_match_repo}" ]]; then
+      prefix="$(git rev-parse --show-prefix 2> /dev/null)"
+    fi
     # The filepaths are collected up front so that `git check-ignore` is run once for all of them
     # instead of once per line.
     local line_filepaths=()
     for status_line in ${lines[@]}; do
       _zg_strip_ansi "${status_line}"
       _zg_get_filepath_from_status "${REPLY}"
+      if [[ -n "${prefix}" ]]; then
+        # The filepath is below `${PWD}`, so prefixing gives the one relative to the root of the
+        # repository. `:a` then resolves the `..` segments of a filepath which `git status` printed
+        # as reaching above `${PWD}`. It is purely lexical, it does not touch the filesystem, and
+        # the leading `/` is only there to keep it from prepending `${PWD}`.
+        REPLY="${${:-/${prefix}${REPLY}}:a}"
+        REPLY="${REPLY#/}"
+      fi
       line_filepaths+=("${REPLY}")
     done
     _zg_load_excluded_patterns "${line_filepaths[@]}"
@@ -202,13 +219,40 @@ function _zg_find_status_exclude_file {
   done
 }
 
+## Sets `_zg_status_match_repo` to an empty repository kept for matching, else to nothing when it
+## cannot be created.
+##
+## `git check-ignore` has to run inside a repository, and it reports the match of the highest
+## precedence exclude source. `core.excludesFile`, the only source which can be pointed at an
+## arbitrary path, is the lowest precedence one, so in the repository being worked on a filepath
+## matched by both the exclusions file and a `.gitignore` is reported against the `.gitignore`.
+## Matching in an empty repository instead leaves the exclusions file as the only source, so any
+## filepath can be excluded, including one which is tracked and gitignored at the same time.
+##
+## The repository is only scaffolding for pattern matching: `git check-ignore` matches filepaths as
+## text, so the filepaths need not exist there, and `--no-index` keeps it from reading the index.
+## It stays empty and is created once. `init.templateDir` is emptied so that the template does not
+## bring in an `info/exclude`, which would be a second exclude source.
+function _zg_find_match_repo {
+  local dir="${XDG_CACHE_HOME:-${HOME}/.cache}/zsh-git/match_repo"
+  if [[ ! -e "${dir}/.git" ]]; then
+    git -c init.templateDir= init -q "${dir}" 2> /dev/null
+  fi
+  _zg_status_match_repo=''
+  if [[ -e "${dir}/.git" ]]; then
+    _zg_status_match_repo="${dir}"
+  fi
+}
+
 ## Sets `_zg_status_excluded_patterns`, mapping each excluded filepath to the pattern of
 ## `_zg_status_exclude_file` which excluded it. Filepaths which are not excluded are absent.
-## @param $@ Filepaths, as reported by `git status`, so relative to `${PWD}`.
+## @param $@ Filepaths, relative to the root of the repository when `_zg_status_match_repo` is
+## set, else relative to `${PWD}`.
 function _zg_load_excluded_patterns {
   _zg_status_excluded_patterns=()
   # The exclusions file is fed to git as `core.excludesFile`, the one exclude source git reads
-  # from an arbitrary path.
+  # from an arbitrary path. `-C` runs the match repository when there is one; without it the
+  # matching falls back to the repository being worked on, where a `.gitignore` takes precedence.
   #
   # `-z` is NUL delimited on both sides, so a filepath containing whitespace or a newline stays a
   # single record. `-v` prints `<source>`, `<line>`, `<pattern>` and `<filepath>` per match, and
@@ -219,15 +263,13 @@ function _zg_load_excluded_patterns {
   # `-v` reports a match against a negative pattern (`!a.log`) too, which means the filepath is
   # explicitly not excluded, so those records are dropped below.
   local records="$(print -rN -- "${@}" \
-    | git -c "core.excludesFile=${_zg_status_exclude_file}" \
+    | git -C "${_zg_status_match_repo:-.}" -c "core.excludesFile=${_zg_status_exclude_file}" \
         check-ignore -z -v --no-index --stdin 2> /dev/null)"
   local fields=(${(0)records})
   local i
   for ((i = 1; i <= ${#fields}; i += 4)); do
-    # `core.excludesFile` is the lowest precedence exclude source, so a filepath matched by both
-    # it and a `.gitignore` of the repository is reported against the `.gitignore`. Those matches
-    # are dropped: only the exclusions file may exclude from the list. This affects filepaths
-    # which are tracked and gitignored at the same time; such a filepath is not excluded.
+    # Only the exclusions file may exclude from the list. In the match repository it is the only
+    # source, so this drops nothing; in the fallback it drops the `.gitignore` matches.
     if [[ "${fields[i]}" != "${_zg_status_exclude_file}" || "${fields[i + 2]}" = '!'* ]]; then
       continue
     fi

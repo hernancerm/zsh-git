@@ -78,11 +78,10 @@ escaping and pattern rules are the ones from `.gitignore`. Example contents of a
 ```gitignore
 # Files modified for app startup purposes.
 Makefile
-Dockerfile
-notes (1).md
-vendor/
-*.log
-!important.log
+compose.yaml
+src/main/resources/application-*.yml
+!src/main/resources/application-prod.yml
+src/main/resources/db/migration/
 ```
 
 Only the patterns which excluded at least one file are listed in fzf's header. Press

@@ -48,8 +48,10 @@ bindkey "^g^k" zg-head-map
 # File: ~/.zshrc
 ```
 
-Tip: Set `ZG_STATUS_EXCLUDE_GLOBS` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific
-files out of fzf's list. Each entry is a zsh glob matched against the filepath of a `git
+### Excluding files from `zg-status` (<kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd>)
+
+Set `ZG_STATUS_EXCLUDE_GLOBS` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific files
+out of fzf's list. Each entry is a zsh glob matched against the filepath of a `git
 status` entry. Only the globs which excluded at least one file are listed in fzf's header.
 Press <kbd>Ctrl-f</kbd> to list the full `git status`. Example:
 
@@ -81,6 +83,40 @@ characters are meaningful in a glob:
 A filepath which contains any of them literally needs each one backslash-escaped, as in
 the `notes \(1\).md` entry above. With `setopt extendedglob`, which zsh-git honors but
 does not set, `#`, `##`, `^` and `~` become meaningful too and likewise need escaping.
+
+#### Per directory autoloading of `ZG_STATUS_EXCLUDE_GLOBS`
+
+Set `ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD=1` before sourcing the plugin to define the
+exclusions per directory:
+
+```bash
+ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD=1
+source "${HOME}/.zsh-git/zsh-git/git.plugin.zsh"
+
+# File: ~/.zshrc
+```
+
+On each directory change, `ZG_STATUS_EXCLUDE_GLOBS` is reset and then set from the closest
+`.ZG_STATUS_EXCLUDE_GLOBS` file. The lookup starts at the cwd and walks up the parent
+dirs, stopping at `${HOME}` or `/`. The first file found wins; files higher up are not
+merged in. When no file is found the parameter is left empty. With the autoload enabled, a
+value assigned in `~/.zshrc` for `ZG_STATUS_EXCLUDE_GLOBS` is discarded on the first `cd`.
+
+Each line of the `.ZG_STATUS_EXCLUDE_GLOBS` file is one entry of
+`ZG_STATUS_EXCLUDE_GLOBS`, taken verbatim, with the same glob syntax described above.
+Empty lines are dropped. There is no comment syntax, since `#` is a glob character under
+`extendedglob`. Example contents of a `.ZG_STATUS_EXCLUDE_GLOBS` file placed at the root
+of a repository:
+
+```text
+Makefile
+Dockerfile
+notes \(1\).md
+vendor/*
+*.log
+```
+
+I recommend adding `.ZG_STATUS_EXCLUDE_GLOBS` to your global `.gitignore`.
 
 ## Installation
 

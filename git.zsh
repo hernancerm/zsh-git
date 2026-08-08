@@ -9,6 +9,7 @@ function zg_version {
 
 ZG_PREFIX="${ZG_PREFIX:-^g}"
 ZG_SET_KEYBINDS="${ZG_SKIP_KEYBINDS:-1}"
+ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD="${ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD:-0}"
 
 typeset -ga ZG_STATUS_EXCLUDE_GLOBS
 
@@ -177,6 +178,41 @@ function _zg_escape_filepath {
   # `(q+)` quotes only when needed and prefers single quotes, which keeps the buffer readable.
   REPLY="${(q+)1}"
 }
+
+# AUTOLOAD OF ZG_STATUS_EXCLUDE_GLOBS
+
+# Sets `ZG_STATUS_EXCLUDE_GLOBS` from the closest `.ZG_STATUS_EXCLUDE_GLOBS` file, so the
+# exclusions can be defined per directory tree instead of globally in `~/.zshrc`. Each line of the
+# file is one entry of the array, taken verbatim; empty lines are dropped. There is no comment
+# syntax, since `#` is a glob character under `extendedglob`.
+#
+# The lookup starts at `${PWD}` and walks up the parent directories, stopping at `${HOME}` when
+# `${PWD}` is under it, else at `/`. The first file found wins; files higher up are not merged in.
+# When no file is found the array is left empty, so leaving a directory tree also leaves its
+# exclusions behind.
+function _zg_load_status_exclude_globs {
+  # `no_sh_word_split` so a glob containing whitespace stays a single entry.
+  setopt local_options no_sh_word_split
+  ZG_STATUS_EXCLUDE_GLOBS=()
+  local dir="${PWD}"
+  while true; do
+    if [[ -r "${dir}/.ZG_STATUS_EXCLUDE_GLOBS" ]]; then
+      ZG_STATUS_EXCLUDE_GLOBS=(${(f)"$(< "${dir}/.ZG_STATUS_EXCLUDE_GLOBS")"})
+      return
+    fi
+    if [[ "${dir}" = "${HOME}" || "${dir}" = '/' ]]; then
+      return
+    fi
+    dir="${dir:h}"
+  done
+}
+
+if [[ ZG_STATUS_EXCLUDE_GLOBS_AUTOLOAD -eq 1 ]]; then
+  autoload -Uz add-zsh-hook
+  add-zsh-hook chpwd _zg_load_status_exclude_globs
+  # The hook only runs on a dir change, so the dir the shell starts in needs one explicit call.
+  _zg_load_status_exclude_globs
+fi
 
 # WIDGETS
 

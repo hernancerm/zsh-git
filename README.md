@@ -70,11 +70,12 @@ the cwd and walks up the parent dirs, stopping at `${HOME}` or `/`. The first fi
 wins; files higher up are not merged in. When no file is found nothing is excluded.
 
 Each line of the file is one glob, taken verbatim, matched against the filepath of a `git
-status` entry. Empty lines are dropped. There is no comment syntax, since `#` is a glob
-character under `extendedglob`. Example contents of a `.zg_status_exclude_globs` file
-placed at the root of a repository:
+status` entry. Empty lines are dropped. A line whose first character is `#` is a comment
+and is dropped as well. Example contents of a `.zg_status_exclude_globs` file placed at the
+root of a repository:
 
 ```text
+# Files modified for app startup purposes.
 Makefile
 Dockerfile
 notes \(1\).md
@@ -97,6 +98,9 @@ characters are meaningful in a glob:
 A filepath which contains any of them literally needs each one backslash-escaped, as in
 the `notes \(1\).md` entry above. With `setopt extendedglob`, which zsh-git honors but
 does not set, `#`, `##`, `^` and `~` become meaningful too and likewise need escaping.
+
+A filepath which starts with `#` is written `\#`, as in `\#notes.md`, regardless of
+`extendedglob`, since an unescaped leading `#` marks the line as a comment.
 
 ## Installation
 

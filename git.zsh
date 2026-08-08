@@ -184,8 +184,10 @@ function _zg_escape_filepath {
 
 # Sets `_zg_status_exclude_globs` from the closest `.zg_status_exclude_globs` file, so the
 # exclusions are defined per directory tree instead of globally in `~/.zshrc`. Each line of the
-# file is one entry of the array, taken verbatim; empty lines are dropped. There is no comment
-# syntax, since `#` is a glob character under `extendedglob`.
+# file is one entry of the array, taken verbatim; empty lines are dropped. A line whose first char
+# is `#` is a comment and is dropped as well; `#` is only meaningful as a glob char after a pattern
+# (`a#`, `a##`), so in leading position it is free to take. A filepath which really starts with `#`
+# is written `\#`, which matches with and without `extendedglob`.
 #
 # The lookup starts at `${PWD}` and walks up the parent directories, stopping at `${HOME}` when
 # `${PWD}` is under it, else at `/`. The first file found wins; files higher up are not merged in.
@@ -202,6 +204,7 @@ function _zg_load_status_exclude_globs {
   while true; do
     if [[ -r "${dir}/.zg_status_exclude_globs" ]]; then
       _zg_status_exclude_globs=(${(f)"$(< "${dir}/.zg_status_exclude_globs")"})
+      _zg_status_exclude_globs=(${_zg_status_exclude_globs:#\#*})
       return
     fi
     if [[ "${dir}" = "${HOME}" || "${dir}" = '/' ]]; then

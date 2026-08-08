@@ -84,6 +84,8 @@ compose.yaml
 src/main/resources/application-*.yml
 !src/main/resources/application-prod.yml
 src/main/resources/db/migration/
+
+# File: ./.zg_status_exclude
 ```
 
 Only the patterns which excluded at least one file are listed in fzf's header, each

@@ -9,8 +9,10 @@ After sourcing the plugin these keybinds are set:
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> Add status files to the zsh buffer.
   - <kbd>Ctrl-f</kbd> Includes excluded items (`ZG_STATUS_EXCLUDE`) in fzf's list.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
+  - <kbd>Tab</kbd> Toggle current item selection.
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-w</kbd> Add worktree path to the zsh buffer.
   - <kbd>Ctrl-a</kbd> Toggles selecting all items from fzf's list.
+  - <kbd>Tab</kbd> Toggle current item selection.
 - <kbd>Ctrl-g</kbd><kbd>Ctrl-h</kbd> Add the HEAD to the zsh buffer.
 
 Usage examples:

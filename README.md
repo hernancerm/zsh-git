@@ -51,15 +51,15 @@ bindkey "^g^k" zg-head-map
 Tip: Set `ZG_STATUS_EXCLUDE_GLOBS` so <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> leaves specific
 files out of fzf's list. Each entry is a zsh glob matched against the filepath of a `git
 status` entry. Only the globs which excluded at least one file are listed in fzf's header.
-`**` and `*` behave identically. Press <kbd>Ctrl-f</kbd> to list the full `git status`.
-Example:
+Press <kbd>Ctrl-f</kbd> to list the full `git status`. Example:
 
 ```bash
 # Set as needed:
 
 ZG_STATUS_EXCLUDE_GLOBS=(
-  'Dockerfile'
   'Makefile'
+  'Dockerfile'
+  'notes \(1\).md'
   'vendor/*'
   '*.log'
 )
@@ -68,6 +68,19 @@ ZG_STATUS_EXCLUDE_GLOBS=(
 # Exclude from `git add` files modified for app startup purposes.
 # $ git add <Ctrl-g><Ctrl-s>
 ```
+
+The matching is zsh pattern matching, not filename generation, so `*` crosses `/`:
+`vendor/*` excludes `vendor/a/b.go` and `**` behaves the same as `*`. Besides `*`, these
+characters are meaningful in a glob:
+
+- `?` (any single character)
+- `[abc]` and `[^abc]` (character classes)
+- `<1-9>` (numeric range)
+- `(a|b)` (alternation)
+
+A filepath which contains any of them literally needs each one backslash-escaped, as in
+the `notes \(1\).md` entry above. With `setopt extendedglob`, which zsh-git honors but
+does not set, `#`, `##`, `^` and `~` become meaningful too and likewise need escaping.
 
 ## Installation
 

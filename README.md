@@ -25,7 +25,9 @@ cd <Ctrl-g><Ctrl-w>
 > <kbd>Ctrl-g</kbd><kbd>Ctrl-s</kbd> does not work if flow control is enabled, `stty
 > -ixon` disables flow control.
 
-Tip: Set `zg_map_head` and use `zg-head-map` to map the HEAD before putting it in the zsh
+### Transforming HEAD with `zg-head-map`
+
+Set `zg_map_head` and use `zg-head-map` to map the HEAD before putting it in the zsh
 buffer. Example:
 
 ```bash
@@ -84,12 +86,12 @@ vendor/
 ```
 
 Only the patterns which excluded at least one file are listed in fzf's header. Press
-<kbd>Ctrl-f</kbd> to list the full `git status`.
+<kbd>Ctrl-f</kbd> to list the full status.
 
 The matching runs in an empty repository cached at `${XDG_CACHE_HOME:-~/.cache}/zsh-git`,
 created on first use, so that `.zg_status_exclude` is the only exclude source Git
 considers. Otherwise the repo's `.gitignore` would take precedence over it, leaving a
-filepath which is tracked and gitignored at the same time impossible to exclude.
+filepath which is tracked _and_ gitignored impossible to exclude.
 
 Add `.zg_status_exclude` to your global `.gitignore`.
 

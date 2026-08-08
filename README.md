@@ -86,8 +86,9 @@ src/main/resources/application-*.yml
 src/main/resources/db/migration/
 ```
 
-Only the patterns which excluded at least one file are listed in fzf's header. Press
-<kbd>Ctrl-f</kbd> to list the full status.
+Only the patterns which excluded at least one file are listed in fzf's header, each
+followed by how many files it excluded, as in `*.log  (3)`. Press <kbd>Ctrl-f</kbd> to
+list the full status.
 
 The matching runs in an empty repository cached at `${XDG_CACHE_HOME:-~/.cache}/zsh-git`,
 created on first use, so that `.zg_status_exclude` is the only exclude source Git

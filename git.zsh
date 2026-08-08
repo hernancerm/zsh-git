@@ -40,6 +40,7 @@ function _zg_handle_status {
   fi
   local included_status=()
   local matched_patterns=()
+  local -A pattern_counts
   local status_line
   if [[ -z "${_zg_status_exclude_file}" ]]; then
     included_status=(${(f)status_lines})
@@ -75,9 +76,12 @@ function _zg_handle_status {
       pattern="${_zg_status_excluded_patterns[${line_filepaths[i]}]}"
       if [[ -z "${pattern}" ]]; then
         included_status+=("${lines[i]}")
-      elif [[ ${matched_patterns[(Ie)${pattern}]} -eq 0 ]]; then
-        # Only patterns which excluded at least one filepath are shown in the header, once each.
-        matched_patterns+=("${pattern}")
+      else
+        if [[ ${matched_patterns[(Ie)${pattern}]} -eq 0 ]]; then
+          # Only patterns which excluded at least one filepath are shown in the header, once each.
+          matched_patterns+=("${pattern}")
+        fi
+        (( pattern_counts[${pattern}]++ ))
       fi
     done
   fi
@@ -88,7 +92,12 @@ function _zg_handle_status {
   # There is no going back to the view with the exclusions.
   fzf_args+=(--bind "ctrl-f:become(${show_all_status})")
   if [[ ${#matched_patterns} -gt 0 ]]; then
-    fzf_args+=(--header "${(F)matched_patterns}")
+    # Each header line is the pattern followed by how many filepaths it excluded.
+    local header_lines=()
+    for pattern in ${matched_patterns[@]}; do
+      header_lines+=("${pattern}  (${pattern_counts[${pattern}]})")
+    done
+    fzf_args+=(--header "${(F)header_lines}")
   fi
   # Case: Every filepath is excluded. Give fzf empty input instead of a single blank line.
   local fzf_input=''
